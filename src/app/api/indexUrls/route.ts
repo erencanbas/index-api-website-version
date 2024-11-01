@@ -90,7 +90,11 @@ export async function POST(req: NextRequest) {
         const jsonKeyEnvVar = `GOOGLE_ACCOUNT${i + 1}_KEY`;
         const jsonKey = process.env[jsonKeyEnvVar]; // Dosya yolunu alıyoruz
 
-        
+        // jsonKey'in tanımlı olduğundan emin olun
+        if (!jsonKey) {
+            console.error(`Error: Environment variable ${jsonKeyEnvVar} is not defined.`);
+            continue; // Eğer tanımlı değilse bu hesabı atla
+        }
 
         const startIndex = i * URLS_PER_ACCOUNT;
         const endIndex = startIndex + URLS_PER_ACCOUNT;
@@ -104,4 +108,3 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(report, { status: 200 });
 }
-//test
