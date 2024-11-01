@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "crows-developers-1717697790144",
+  "private_key_id": "44ae5eba4e4230d08d1f1f5fb5f87ecde8446729",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDeiL8gVWzBHkCn\njJcd1mAFIWbpZXht9tRoztOKYVHGv4+8eFRLPHiS9/nhMSywzulFnuVUIog9tcuO\n1GDWiJA2p2/FqVpps115F+pZ5BgH8i80GLeP4kjvHUDaXsd69c6FOl0DSpAPp1VZ\nFvueW4/DfzsRqYV5seYXEkXIEGvSgHQ7gItrVpo0HImAMAJnkN6g7BrSpsS121G6\n/NtBRlR7f5yzne6oimMkhcCe8kknN7y1Cl8GhUplkn4nT1PST6iJQnXP2Iz4UqyF\nponDOYrWD1qHYYcu/et0G5rX00GDKu1zB4G3p4jx1mmYBKnN/eONljhwekRyx4ZZ\nFzynLpGBAgMBAAECggEAI7xkAkZAQ7b0Ul5nuhk+AYo+o4ZxqNRgLJXiL1u3gn+A\nDpe9jvjJXW3zCRsY09U2bWwPOcvzLa3EYE3HYKGSPySeShNgezmcQ3ZNYl1tuoDw\nMaEygSmpOrTrlZBuNQHE8MIm7lYKp741x4EYVnLaYF5N1w/uaP+M3/Ga69OEl8tP\nnTkJM1FC+t3n9k3wCQZGaLwldu+bLF2AYeKZZjZS6zUKOb1MT9J5U1AulsmBiox6\nNc5D7eZJhpZoFTgE3t4I/se1nTWqYxL2lfa3/67rt7c75318vIm6t+hHT/7AXFQp\n/8fyBuLFRJtKaZZv0EcrMVi0LAXHouz5Syv8gXt9zQKBgQD7E/1/3vK6yRW82KIm\nys4Xwn4aIAAsvwY8ZKxIBfy1CMrZdzlLPCPTK5nDeiHB9c4TAFarx6jm7T/VH4wI\n7X+WWSciT/7+STjIHrLeO3PkI15523h5oDoPXGqYBauVqqbq3PABLwYHi/h77feQ\n+CWNHDfEx0bZuUu02Z7Zx9mcOwKBgQDi5YL4TqKO3CvLDVSjX/VDnPmWqj2nmwf8\nEAiLCe5/8WO4BQBc88OXm3qQ0a/idzMTiQUIJHalC0TzAJvkhcNBXapvLskRJrJT\njyUVEJ/GsZTO5Z+BkbBchNoliqnZB+ELLJjyKoH+R3z2RzMhgoq7Fd7ZQVHhKwg9\nI4ZOxuj5cwKBgE1yChSCOY7h7cGVdNbQYae0h18ZldQ3i/3e88E3j45ryt4vR03s\nnARMA57nMjh40HrN9O4BpRit/62GkJREZcGDeG2+DSJ0hX488eFYp1OskTy3NL8X\nbDFGyV5hCV8eB2SUh7dlwM9dHmVjrqRZ1oNjO9SHv1PzMuXy5mu4mGf3AoGBAI2H\n/JpG8r+KNwcB2bnPMX5rfISuzKav3dstZSbVmx/TwxAWjpNsuqTnJx0Or1fkYsfc\nwHbDx/5LeUbbKmLxzUoI0zdnR6SbLsFQmSD6ra+TNe+Y7FY2Onx7oleolyn58Da4\nKu9j9JJYpWo6H3rXoxHwIoICbMC3xvvcHPsmuExhAoGATXMkUzA+E6YkxF/7VfcH\ngPbKG6FjStLDGhx6iP4ktB4r9WboDEMAJfmZ7IuprPDuKndXfbHxe2Re9ZaH8gi0\nti6bKAubiUXZpFnyojudAsFFei3QwtWlVgb1HldYIBOP80ivt+lNXKfNeFZJV4aG\n4++Lp8X+nnMzg8Ce0ZQTO0M=\n-----END PRIVATE KEY-----\n",
+  "client_email": "service-account@crows-developers-1717697790144.iam.gserviceaccount.com",
+  "client_id": "116636528628411672669",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/service-account%40crows-developers-1717697790144.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
