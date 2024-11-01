@@ -17,13 +17,19 @@ async function sendUrl(authClient: OAuth2Client, url: string) {
             const response = await axios.post(ENDPOINT, content, { headers });
             return response.data;
         } catch (error) {
-            if (axios.isAxiosError(error) && error.response && error.response.status === 500) {
-                console.log('Server disconnected, retrying...');
-                await new Promise(resolve => setTimeout(resolve, 2000));
+            if (axios.isAxiosError(error)) {
+                // Hata bir AxiosError ise işleme devam et
+                if (error.response && error.response.status === 500) {
+                    console.log('Server disconnected, retrying...');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                } else {
+                    return error.response
+                        ? error.response.data
+                        : { message: error.message };
+                }
             } else {
-                return error instanceof AxiosError && error.response
-                    ? error.response.data
-                    : { message: error.message };
+                // Eğer error bir AxiosError değilse, genel hata mesajı döndür
+                return { message: 'An unexpected error occurred' };
             }
         }
     }
