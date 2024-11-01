@@ -45,12 +45,14 @@ async function indexURLs(authClient: JWT, urls: string[]) {
     return { successfulUrls, error429Count, totalUrls: urls.length };
 }
 
-async function setupHttpClient(jsonKey: string) {
+async function setupHttpClient(jsonKey: string): Promise<JWT> {
     const auth = new GoogleAuth({
         credentials: JSON.parse(jsonKey),
         scopes: SCOPES,
     });
-    return auth.getClient() as JWT;
+
+    const client = (await auth.getClient()) as unknown as JWT;
+    return client;
 }
 
 async function fetchUrlsFromSitemap(url: string) {
