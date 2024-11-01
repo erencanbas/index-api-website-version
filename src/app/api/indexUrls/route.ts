@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { GoogleAuth, OAuth2Client } from 'google-auth-library';
 import { parseStringPromise } from 'xml2js';
 import { NextRequest, NextResponse } from 'next/server';
@@ -8,7 +8,7 @@ const SCOPES = ['https://www.googleapis.com/auth/indexing'];
 const ENDPOINT = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
 const URLS_PER_ACCOUNT = 200;
 
-async function sendUrl(authClient: OAuth2Client, url: string) { // Tür belirtildi
+async function sendUrl(authClient: OAuth2Client, url: string) {
     const headers = await authClient.getRequestHeaders();
     const content = { url: url.trim(), type: "URL_UPDATED" };
 
@@ -17,18 +17,20 @@ async function sendUrl(authClient: OAuth2Client, url: string) { // Tür belirtil
             const response = await axios.post(ENDPOINT, content, { headers });
             return response.data;
         } catch (error) {
-            if (error.response && error.response.status === 500) {
+            if (axios.isAxiosError(error) && error.response && error.response.status === 500) {
                 console.log('Server disconnected, retrying...');
                 await new Promise(resolve => setTimeout(resolve, 2000));
             } else {
-                return error.response ? error.response.data : error.message;
+                return error instanceof AxiosError && error.response
+                    ? error.response.data
+                    : { message: error.message };
             }
         }
     }
     return { error: { code: 500, message: "Server Disconnected after multiple retries" }};
 }
 
-async function indexURLs(authClient: OAuth2Client, urls: string[]) { // Tür belirtildi
+async function indexURLs(authClient: OAuth2Client, urls: string[]) {
     let successfulUrls = 0;
     let error429Count = 0;
 
@@ -48,12 +50,12 @@ async function indexURLs(authClient: OAuth2Client, urls: string[]) { // Tür bel
     return { successfulUrls, error429Count, totalUrls: urls.length };
 }
 
-async function setupHttpClient(jsonKeyFilePath: string): Promise<OAuth2Client> { // Tür belirtildi
+async function setupHttpClient(jsonKeyFilePath: string): Promise<OAuth2Client> {
     const auth = new GoogleAuth({
         keyFile: path.join(process.cwd(), jsonKeyFilePath),
         scopes: SCOPES,
     });
-    return await auth.getClient() as OAuth2Client; // Türü OAuth2Client olarak belirttik
+    return await auth.getClient() as OAuth2Client;
 }
 
 async function fetchUrlsFromSitemap(url: string) {
@@ -66,7 +68,7 @@ async function fetchUrlsFromSitemap(url: string) {
             urls.push(elem.loc[0]);
         });
     } catch (error) {
-        console.log(`Error fetching sitemap: ${error.message}`);
+        console.log(`Error fetching sitemap: ${error instanceof Error ? error.message : error}`);
     }
     return urls;
 }
