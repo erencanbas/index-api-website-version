@@ -70,33 +70,43 @@ async function fetchUrlsFromSitemap(url: string) {
 }
 
 export async function POST(req: NextRequest) {
-    const { numAccounts, sitemapUrl } = await req.json();
-    const allUrls = await fetchUrlsFromSitemap(sitemapUrl);
+    try {
+        const { numAccounts, sitemapUrl } = await req.json();
+        console.log('numAccounts:', numAccounts, 'sitemapUrl:', sitemapUrl);
 
-    if (allUrls.length === 0) {
-        return NextResponse.json({ message: "No URLs found in the sitemap!" }, { status: 400 });
-    }
+        const allUrls = await fetchUrlsFromSitemap(sitemapUrl);
+        console.log('Fetched URLs:', allUrls);
 
-    let report = [];
-
-    for (let i = 0; i < numAccounts; i++) {
-        const jsonKeyEnvVar = `GOOGLE_ACCOUNT${i + 1}_KEY`;
-        const jsonKey = process.env[jsonKeyEnvVar];
-
-        if (!jsonKey) {
-            console.log(`Error: Environment variable for ${jsonKeyEnvVar} not found!`);
-            continue;
+        if (allUrls.length === 0) {
+            return NextResponse.json({ message: "No URLs found in the sitemap!" }, { status: 400 });
         }
 
-        const startIndex = i * URLS_PER_ACCOUNT;
-        const endIndex = startIndex + URLS_PER_ACCOUNT;
-        const urlsForAccount = allUrls.slice(startIndex, endIndex);
+        let report = [];
 
-        const authClient = await setupHttpClient(jsonKey);
-        const result = await indexURLs(authClient, urlsForAccount);
+        for (let i = 0; i < numAccounts; i++) {
+            const jsonKeyEnvVar = `GOOGLE_ACCOUNT${i + 1}_KEY`;
+            const jsonKey = process.env[jsonKeyEnvVar];
+            console.log(`Using key for account ${i + 1}:`, jsonKeyEnvVar);
 
-        report.push({ account: i + 1, ...result });
+            if (!jsonKey) {
+                console.log(`Error: Environment variable for ${jsonKeyEnvVar} not found!`);
+                continue;
+            }
+
+            const startIndex = i * URLS_PER_ACCOUNT;
+            const endIndex = startIndex + URLS_PER_ACCOUNT;
+            const urlsForAccount = allUrls.slice(startIndex, endIndex);
+
+            const authClient = await setupHttpClient(jsonKey);
+            const result = await indexURLs(authClient, urlsForAccount);
+
+            report.push({ account: i + 1, ...result });
+        }
+
+        console.log("Final Report:", report);
+        return NextResponse.json(report, { status: 200 });
+    } catch (error) {
+        console.error("Error in POST request:", error);
+        return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }
-
-    return NextResponse.json(report, { status: 200 });
 }
