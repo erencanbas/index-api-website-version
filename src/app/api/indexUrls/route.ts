@@ -1,14 +1,13 @@
 import axios from 'axios';
-import { GoogleAuth } from 'google-auth-library';
+import { GoogleAuth, JWT } from 'google-auth-library';
 import { parseStringPromise } from 'xml2js';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
 
 const SCOPES = ['https://www.googleapis.com/auth/indexing'];
 const ENDPOINT = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
 const URLS_PER_ACCOUNT = 200;
 
-async function sendUrl(authClient, url: string) {
+async function sendUrl(authClient: JWT, url: string) {
     const headers = await authClient.getRequestHeaders();
     const content = { url: url.trim(), type: "URL_UPDATED" };
 
@@ -16,19 +15,19 @@ async function sendUrl(authClient, url: string) {
         try {
             const response = await axios.post(ENDPOINT, content, { headers });
             return response.data;
-        } catch (error) {
+        } catch (error: any) {
             if (error.response && error.response.status === 500) {
                 console.log('Server disconnected, retrying...');
                 await new Promise(resolve => setTimeout(resolve, 2000));
             } else {
-                return error.response ? error.response.data : error.message;
+                return error.response ? error.response.data : { message: error.message };
             }
         }
     }
     return { error: { code: 500, message: "Server Disconnected after multiple retries" }};
 }
 
-async function indexURLs(authClient, urls: string[]) {
+async function indexURLs(authClient: JWT, urls: string[]) {
     let successfulUrls = 0;
     let error429Count = 0;
 
@@ -36,10 +35,8 @@ async function indexURLs(authClient, urls: string[]) {
     const results = await Promise.all(promises);
 
     results.forEach(result => {
-        if (result.error) {
-            if (result.error.code === 429) {
-                error429Count++;
-            }
+        if (result.error && result.error.code === 429) {
+            error429Count++;
         } else {
             successfulUrls++;
         }
@@ -48,12 +45,14 @@ async function indexURLs(authClient, urls: string[]) {
     return { successfulUrls, error429Count, totalUrls: urls.length };
 }
 
-async function setupHttpClient(jsonKeyFilePath: string) {
+async function setupHttpClient(jsonKey: string): Promise<JWT> {
     const auth = new GoogleAuth({
-        keyFile: path.join(process.cwd(), jsonKeyFilePath),
+        credentials: JSON.parse(jsonKey),
         scopes: SCOPES,
     });
-    return await auth.getClient();
+
+    const client = (await auth.getClient()) as unknown as JWT;
+    return client;
 }
 
 async function fetchUrlsFromSitemap(url: string) {
@@ -61,44 +60,53 @@ async function fetchUrlsFromSitemap(url: string) {
     try {
         const response = await axios.get(url);
         const result = await parseStringPromise(response.data);
-        
         result.urlset.url.forEach((elem: any) => {
             urls.push(elem.loc[0]);
         });
-    } catch (error) {
+    } catch (error: any) {
         console.log(`Error fetching sitemap: ${error.message}`);
     }
     return urls;
 }
 
 export async function POST(req: NextRequest) {
-    const { numAccounts, sitemapUrl } = await req.json();
-    const allUrls = await fetchUrlsFromSitemap(sitemapUrl);
+    try {
+        const { numAccounts, sitemapUrl } = await req.json();
+        console.log('numAccounts:', numAccounts, 'sitemapUrl:', sitemapUrl);
 
-    if (allUrls.length === 0) {
-        return NextResponse.json({ message: "No URLs found in the sitemap!" }, { status: 400 });
-    }
+        const allUrls = await fetchUrlsFromSitemap(sitemapUrl);
+        console.log('Fetched URLs:', allUrls);
 
-    let report = [];
-
-    for (let i = 0; i < numAccounts; i++) {
-        const jsonKeyEnvVar = `GOOGLE_ACCOUNT${i + 1}_KEY`;
-        const jsonKeyFilePath = process.env[jsonKeyEnvVar];
-
-        if (!jsonKeyFilePath) {
-            console.log(`Error: Environment variable for ${jsonKeyEnvVar} not found!`);
-            continue;
+        if (allUrls.length === 0) {
+            return NextResponse.json({ message: "No URLs found in the sitemap!" }, { status: 400 });
         }
 
-        const startIndex = i * URLS_PER_ACCOUNT;
-        const endIndex = startIndex + URLS_PER_ACCOUNT;
-        const urlsForAccount = allUrls.slice(startIndex, endIndex);
+        let report = [];
 
-        const authClient = await setupHttpClient(jsonKeyFilePath);
-        const result = await indexURLs(authClient, urlsForAccount);
+        for (let i = 0; i < numAccounts; i++) {
+            const jsonKeyEnvVar = `GOOGLE_ACCOUNT${i + 1}_KEY`;
+            const jsonKey = process.env[jsonKeyEnvVar];
+            console.log(`Using key for account ${i + 1}:`, jsonKeyEnvVar);
 
-        report.push({ account: i + 1, ...result });
+            if (!jsonKey) {
+                console.log(`Error: Environment variable for ${jsonKeyEnvVar} not found!`);
+                continue;
+            }
+
+            const startIndex = i * URLS_PER_ACCOUNT;
+            const endIndex = startIndex + URLS_PER_ACCOUNT;
+            const urlsForAccount = allUrls.slice(startIndex, endIndex);
+
+            const authClient = await setupHttpClient(jsonKey);
+            const result = await indexURLs(authClient, urlsForAccount);
+
+            report.push({ account: i + 1, ...result });
+        }
+
+        console.log("Final Report:", report);
+        return NextResponse.json(report, { status: 200 });
+    } catch (error) {
+        console.error("Error in POST request:", error);
+        return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }
-
-    return NextResponse.json(report, { status: 200 });
 }
