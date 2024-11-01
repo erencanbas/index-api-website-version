@@ -1,14 +1,13 @@
-import axios, { AxiosError } from 'axios';
-import { GoogleAuth, OAuth2Client } from 'google-auth-library';
+import axios from 'axios';
+import { GoogleAuth, JWT } from 'google-auth-library';
 import { parseStringPromise } from 'xml2js';
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
 
 const SCOPES = ['https://www.googleapis.com/auth/indexing'];
 const ENDPOINT = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
 const URLS_PER_ACCOUNT = 200;
 
-async function sendUrl(authClient: OAuth2Client, url: string) {
+async function sendUrl(authClient: JWT, url: string) {
     const headers = await authClient.getRequestHeaders();
     const content = { url: url.trim(), type: "URL_UPDATED" };
 
@@ -16,27 +15,19 @@ async function sendUrl(authClient: OAuth2Client, url: string) {
         try {
             const response = await axios.post(ENDPOINT, content, { headers });
             return response.data;
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                // Hata bir AxiosError ise işleme devam et
-                if (error.response && error.response.status === 500) {
-                    console.log('Server disconnected, retrying...');
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                } else {
-                    return error.response
-                        ? error.response.data
-                        : { message: error.message };
-                }
+        } catch (error: any) {
+            if (error.response && error.response.status === 500) {
+                console.log('Server disconnected, retrying...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
             } else {
-                // Eğer error bir AxiosError değilse, genel hata mesajı döndür
-                return { message: 'An unexpected error occurred' };
+                return error.response ? error.response.data : { message: error.message };
             }
         }
     }
     return { error: { code: 500, message: "Server Disconnected after multiple retries" }};
 }
 
-async function indexURLs(authClient: OAuth2Client, urls: string[]) {
+async function indexURLs(authClient: JWT, urls: string[]) {
     let successfulUrls = 0;
     let error429Count = 0;
 
@@ -44,10 +35,8 @@ async function indexURLs(authClient: OAuth2Client, urls: string[]) {
     const results = await Promise.all(promises);
 
     results.forEach(result => {
-        if (result.error) {
-            if (result.error.code === 429) {
-                error429Count++;
-            }
+        if (result.error && result.error.code === 429) {
+            error429Count++;
         } else {
             successfulUrls++;
         }
@@ -56,12 +45,12 @@ async function indexURLs(authClient: OAuth2Client, urls: string[]) {
     return { successfulUrls, error429Count, totalUrls: urls.length };
 }
 
-async function setupHttpClient(jsonKeyFilePath: string): Promise<OAuth2Client> {
+async function setupHttpClient(jsonKey: string) {
     const auth = new GoogleAuth({
-        keyFile: path.join(process.cwd(), jsonKeyFilePath),
+        credentials: JSON.parse(jsonKey),
         scopes: SCOPES,
     });
-    return await auth.getClient() as OAuth2Client;
+    return auth.getClient() as JWT;
 }
 
 async function fetchUrlsFromSitemap(url: string) {
@@ -69,12 +58,11 @@ async function fetchUrlsFromSitemap(url: string) {
     try {
         const response = await axios.get(url);
         const result = await parseStringPromise(response.data);
-        
         result.urlset.url.forEach((elem: any) => {
             urls.push(elem.loc[0]);
         });
-    } catch (error) {
-        console.log(`Error fetching sitemap: ${error instanceof Error ? error.message : error}`);
+    } catch (error: any) {
+        console.log(`Error fetching sitemap: ${error.message}`);
     }
     return urls;
 }
@@ -91,9 +79,9 @@ export async function POST(req: NextRequest) {
 
     for (let i = 0; i < numAccounts; i++) {
         const jsonKeyEnvVar = `GOOGLE_ACCOUNT${i + 1}_KEY`;
-        const jsonKeyFilePath = process.env[jsonKeyEnvVar];
+        const jsonKey = process.env[jsonKeyEnvVar];
 
-        if (!jsonKeyFilePath) {
+        if (!jsonKey) {
             console.log(`Error: Environment variable for ${jsonKeyEnvVar} not found!`);
             continue;
         }
@@ -102,7 +90,7 @@ export async function POST(req: NextRequest) {
         const endIndex = startIndex + URLS_PER_ACCOUNT;
         const urlsForAccount = allUrls.slice(startIndex, endIndex);
 
-        const authClient = await setupHttpClient(jsonKeyFilePath);
+        const authClient = await setupHttpClient(jsonKey);
         const result = await indexURLs(authClient, urlsForAccount);
 
         report.push({ account: i + 1, ...result });
