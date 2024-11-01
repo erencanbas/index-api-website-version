@@ -47,12 +47,10 @@ async function indexURLs(authClient: JWT, urls: string[]) {
     return { successfulUrls, error429Count, totalUrls: urls.length };
 }
 
-async function setupHttpClient(jsonKeyPath: string) {
+async function setupHttpClient(jsonKey: string) {
     try {
-        // Dosya yolunu kullanarak JSON içeriğini okuyoruz
-        const jsonKeyContent = fs.readFileSync(jsonKeyPath, 'utf-8');
         const auth = new GoogleAuth({
-            credentials: JSON.parse(jsonKeyContent), // JSON içeriğini ayrıştırıyoruz
+            credentials: JSON.parse(jsonKey), // Çevresel değişken JSON olarak ayrıştırılıyor
             scopes: SCOPES,
         });
         const client = await auth.getClient();
@@ -62,6 +60,7 @@ async function setupHttpClient(jsonKeyPath: string) {
         throw new Error("Failed to set up HTTP client");
     }
 }
+
 
 async function fetchUrlsFromSitemap(url: string) {
     const urls: string[] = [];
@@ -89,18 +88,15 @@ export async function POST(req: NextRequest) {
 
     for (let i = 0; i < numAccounts; i++) {
         const jsonKeyEnvVar = `GOOGLE_ACCOUNT${i + 1}_KEY`;
-        const jsonKeyPath = process.env[jsonKeyEnvVar]; // Dosya yolunu alıyoruz
+        const jsonKey = process.env[jsonKeyEnvVar]; // Dosya yolunu alıyoruz
 
-        if (!jsonKeyPath) {
-            console.log(`Error: Environment variable for ${jsonKeyEnvVar} not found!`);
-            continue;
-        }
+        
 
         const startIndex = i * URLS_PER_ACCOUNT;
         const endIndex = startIndex + URLS_PER_ACCOUNT;
         const urlsForAccount = allUrls.slice(startIndex, endIndex);
 
-        const authClient = await setupHttpClient(jsonKeyPath); // Dosya yolunu setupHttpClient'e gönderiyoruz
+        const authClient = await setupHttpClient(jsonKey); // Dosya yolunu setupHttpClient'e gönderiyoruz
         const result = await indexURLs(authClient, urlsForAccount);
 
         report.push({ account: i + 1, ...result });
