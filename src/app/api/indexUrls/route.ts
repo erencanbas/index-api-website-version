@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { GoogleAuth } from 'google-auth-library';
+import { GoogleAuth, OAuth2Client } from 'google-auth-library';
 import { parseStringPromise } from 'xml2js';
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
@@ -8,7 +8,7 @@ const SCOPES = ['https://www.googleapis.com/auth/indexing'];
 const ENDPOINT = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
 const URLS_PER_ACCOUNT = 200;
 
-async function sendUrl(authClient, url: string) {
+async function sendUrl(authClient: OAuth2Client, url: string) { // Tür belirtildi
     const headers = await authClient.getRequestHeaders();
     const content = { url: url.trim(), type: "URL_UPDATED" };
 
@@ -28,7 +28,7 @@ async function sendUrl(authClient, url: string) {
     return { error: { code: 500, message: "Server Disconnected after multiple retries" }};
 }
 
-async function indexURLs(authClient, urls: string[]) {
+async function indexURLs(authClient: OAuth2Client, urls: string[]) { // Tür belirtildi
     let successfulUrls = 0;
     let error429Count = 0;
 
@@ -48,12 +48,12 @@ async function indexURLs(authClient, urls: string[]) {
     return { successfulUrls, error429Count, totalUrls: urls.length };
 }
 
-async function setupHttpClient(jsonKeyFilePath: string) {
+async function setupHttpClient(jsonKeyFilePath: string): Promise<OAuth2Client> { // Tür belirtildi
     const auth = new GoogleAuth({
         keyFile: path.join(process.cwd(), jsonKeyFilePath),
         scopes: SCOPES,
     });
-    return await auth.getClient();
+    return await auth.getClient() as OAuth2Client; // Türü OAuth2Client olarak belirttik
 }
 
 async function fetchUrlsFromSitemap(url: string) {
