@@ -1,19 +1,20 @@
+"use client"; // Bu satırı ekleyin
+
 import { useState } from 'react';
 import styles from "./css/styles.module.css";
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function Home() {
-  let [sitemapUrl, setSitemapUrl] = useState('');
+  const [sitemapUrl] = useState('https://crowstv.com/post-sitemap.xml');
   const [numAccounts, setNumAccounts] = useState(1);
-  const [report, setReport] = useState(null);
+  const [report, setReport] = useState<{ account: number; successfulUrls: number; error429Count: number; totalUrls: number; }[] | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => { // Tür eklendi
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     try {
-      sitemapUrl = "https://crowstv.com/post-sitemap.xml";
       const response = await fetch('/api/indexUrls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -28,8 +29,9 @@ export default function Home() {
       setReport(data);
     } catch (error) {
       console.error('Error:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -60,27 +62,26 @@ export default function Home() {
         />
         <br />
         <button className={styles.button} type="submit" disabled={loading}>
-          <>
-            <div className={styles.dots_border}></div>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              className={styles.sparkle}
-            >
-              {/* SVG paths */}
-            </svg>
-            <span className={styles.text_button}>{loading ? 'Processing...' : 'Start Index'}</span>
-          </>
+          <div className={styles.dots_border}></div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            className={styles.sparkle}
+          >
+            {/* SVG paths */}
+          </svg>
+          <span className={styles.text_button}>{loading ? 'Processing...' : 'Start Index'}</span>
         </button>
       </form>
 
       {report && (
         <div className={styles.resultContainer}>
           {report.map((item, index) => (
-            <div className={
-              item.error429Count > 0 ? styles.resultFail : styles.resultSuccess
-            } key={index}>
+            <div
+              className={item.error429Count > 0 ? styles.resultFail : styles.resultSuccess}
+              key={index}
+            >
               <p>
                 <strong>Account {item.account}:</strong>
               </p>
